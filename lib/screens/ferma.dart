@@ -62,20 +62,22 @@ class FermatWidgetState extends State<FermatWidget> {
             }
           }, child: Text('Confirm'), color: Colors.redAccent[400], textColor: Colors.black,),
           new SizedBox(height: 50.0),
-          new Text(result == null ? '' : 'p = ${result[0]}\nq = ${result[1]}', style: TextStyle(fontSize: 45.0, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),)
+          new Text(result == null ? '' : 'p = ${result[0]}\nq = ${result[1]}\n Number of iteration: ${result[2]}', style: TextStyle(fontSize: 45.0, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),)
         ]
     ));
   }
 }
 
 List<int> fermat(int n){
+  int iter = 1;
   int x = sqrt(n).ceil();
   int y2 = x * x - n;
   int y = sqrt(y2).toInt();
   while(y2 != y * y){
+    iter++;
     x++;
     y2 = x * x - n;
     y = sqrt(y2).toInt();
   }
-  return [x - y, x + y];
+  return [x - y, x + y, iter];
 }
