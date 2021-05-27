@@ -186,7 +186,7 @@ class GeneticWidgetState extends State<GeneticWidget> {
                       setState(() {
                         var timer = Stopwatch();
                         timer.start();
-                        result = solve([a, b, c, d, res], maxItr, maxPop, 0.05);
+                        result = solve([a, b, c, d, res], maxItr, maxPop, 0.05, false);
                         timer.stop();
                         time = timer.elapsedMilliseconds;
                       });
@@ -198,7 +198,7 @@ class GeneticWidgetState extends State<GeneticWidget> {
               SizedBox(height: 30.0),
               Container(
                 alignment: Alignment.center,
-                child: Text(result == null ? '' : '[x1, x2, x3, x4], iterations = \n       = $result', style: TextStyle(fontSize: 25.0, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),),
+                child: Text(result == null ? '' : '[[x1, x2, x3, x4], iterations] = \n       = $result', style: TextStyle(fontSize: 25.0, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),),
               ),
               SizedBox(height: 20.0),
               Container(
@@ -244,9 +244,17 @@ List<double> generateLikelihoods(List<int> fitnesses){
   return res;
 }
 
-int getIndex(double val, List<List<int>> population, List<double>likelihood) {
+int getIndex(double val, List<List<int>> population, List<double>likelihood, bool bad) {
   double last = 0;
   int len = population.length;
+  if(bad == true){
+    double last = 1;
+    int len = population.length;
+    for(int i = 0; i < len; i++) {
+      if (likelihood[i] <= val && val <= last) return i;
+      }
+      return len - 1;
+  }
   for(int i = 0; i < len; i++) {
     if (last <= val && val <= likelihood[i]) return i;
     else last = likelihood[i];
@@ -254,16 +262,17 @@ int getIndex(double val, List<List<int>> population, List<double>likelihood) {
   return len - 1;
 }
 
-List<List<int>> createNewPopulation(List<List<int>> population, List<double>likelihood, int y, double chance){
+List<List<int>> createNewPopulation(List<List<int>> population, List<double>likelihood, int y, double chance, bool bad){
   int len = population.length;
   for(int i = 0; i < len; i++) {
     int parent1 = 0, parent2 = 0, iterations = 0;
     while(parent1 == parent2 || population[parent1] == population[parent2]){
-      parent1 = getIndex((Random().nextDouble()), population, likelihood);
-      parent2 = getIndex((Random().nextDouble()), population, likelihood);
-        if (++iterations > (pow(len, 2))) break; }
-      population[i] = crossover(population[parent1], population[parent2], y, chance); 
+      parent1 = getIndex((Random().nextDouble()), population, likelihood, bad);
+      parent2 = getIndex((Random().nextDouble()), population, likelihood, bad);
+      if (++iterations > (pow(len, 2))) break;
     }
+    population[i] = crossover(population[parent1], population[parent2], y, chance);
+  }
   return population;
 }
 
@@ -272,13 +281,16 @@ List<int> crossover(List<int> p1, List<int> p2, int y, double chance) {
   int flag = Random().nextInt(len);
   List<int> child = List.filled(len, 0);
   for(int i = 0; i < len; i++) {
-      if(flag < i){ child[i] = p1[i]; }
-    child[i] = p2[i]; 
-      if (Random().nextDouble() < chance) child[i] = Random().nextInt(y); }
+    if(flag < i){
+      child[i] = p1[i];
+    }
+    child[i] = p2[i];
+    if (Random().nextDouble() < chance) child[i] = Random().nextInt(y);
+  }
   return child;
 }
 
-dynamic solve(List<int> data, int maxItr, int maxPop, double chance){
+dynamic solve(List<int> data, int maxItr, int maxPop, double chance, bool bad){
   int len = data.length - 1;
   int y = data.last;
   int numberPop = 0;
@@ -286,12 +298,14 @@ dynamic solve(List<int> data, int maxItr, int maxPop, double chance){
   while(maxItr > 0){
     List<int> fitnesses = createFitness(population, data);
     int i = fitnesses.indexOf(0);
-      if (i != -1){ return [population[i], numberPop]; }
+    if(i != -1){
+      return [population[i], numberPop];
+    }
     List<double> likelihood = generateLikelihoods(fitnesses);
-    List<List<int>> child = createNewPopulation(population, likelihood, y, chance);
+    List<List<int>> child = createNewPopulation(population, likelihood, y, chance, bad);
     numberPop++;
     population = child;
     maxItr--;
   }
-  return ["Iterations", numberPop];
+  return ["Max iterations", numberPop];
 }
